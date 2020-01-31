@@ -68,7 +68,7 @@ public class DatadogBuildListener extends RunListener<Run>  {
             if (!DatadogUtilities.isJobTracked(run.getParent().getFullName())) {
                 return;
             }
-            logger.fine("End DatadogBuildListener#onStarted");
+            logger.fine("Start DatadogBuildListener#onStarted");
 
             // Get Datadog Client Instance
             DatadogClient client = getDatadogClient();
