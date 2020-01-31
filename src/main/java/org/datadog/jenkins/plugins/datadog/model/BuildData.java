@@ -29,9 +29,16 @@ import hudson.EnvVars;
 import hudson.model.*;
 import hudson.triggers.SCMTrigger;
 import hudson.triggers.TimerTrigger;
+import jenkins.model.Jenkins;
 import org.datadog.jenkins.plugins.datadog.DatadogUtilities;
 import org.datadog.jenkins.plugins.datadog.util.SuppressFBWarnings;
 import org.datadog.jenkins.plugins.datadog.util.TagsUtil;
+
+import org.jenkinsci.plugins.workflow.actions.WorkspaceAction;
+import org.jenkinsci.plugins.workflow.flow.FlowExecution;
+import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.graph.FlowGraphWalker;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -87,6 +94,9 @@ public class BuildData {
 
         // Populate instance using environment variables.
         populateEnvVariables(envVars);
+
+        // Populate instance using Workflow information.
+        populateFlowGraph(run);
 
         // Populate instance using run instance
         // Set StartTime, EndTime and Duration
@@ -151,6 +161,47 @@ public class BuildData {
         setPromotedUserName(envVars.get("PROMOTED_USER_NAME"));
         setPromotedUserId(envVars.get("PROMOTED_USER_ID"));
         setPromotedJobFullName(envVars.get("PROMOTED_JOB_FULL_NAME"));
+    }
+
+    private void populateFlowGraph(Run run) {
+        try {
+            if (!isWorkflowAvailable()) {
+                return;
+            }
+            FlowExecution exec = ((WorkflowRun)run).getExecution();
+            if (exec == null) {
+                return;
+            }
+            FlowGraphWalker walker = new FlowGraphWalker(exec);
+            for (FlowNode flowNode : walker) {
+                WorkspaceAction action = flowNode.getAction(WorkspaceAction.class);
+                if (action == null) {
+                    continue;
+                }
+                String workspaceNodeName = action.getNode();
+                if (workspaceNodeName.isEmpty()) {
+                    // WorkspaceAction uses FilePathUtils.getNodeName() to figure out the
+                    // name of the node where the workspace is located [1].
+                    // FilePathUtils.getNodeName() returns an empty string if it's
+                    // the master node [2].
+                    // [1] https://github.com/jenkinsci/workflow-support-plugin/blob/workflow-support-2.0/src/main/java/org/jenkinsci/plugins/workflow/support/actions/WorkspaceActionImpl.java#L54
+                    // [2] https://github.com/jenkinsci/workflow-api-plugin/blob/workflow-api-2.0/src/main/java/org/jenkinsci/plugins/workflow/FilePathUtils.java#L74
+                    this.addNodeName("master");
+                } else {
+                    this.addNodeName(action.getNode());
+                }
+            }
+        } catch (NoClassDefFoundError e) {
+        }
+    }
+
+    // Non-private for testing
+    protected boolean isWorkflowAvailable() {
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins == null) {
+            return false;
+        }
+        return jenkins.getPlugin("workflow-job") != null && jenkins.getPlugin("workflow-api") != null;
     }
 
     /**

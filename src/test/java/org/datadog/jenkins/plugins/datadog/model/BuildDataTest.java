@@ -35,6 +35,7 @@ import org.datadog.jenkins.plugins.datadog.stubs.WorkflowRunStub;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.jenkinsci.plugins.workflow.actions.WorkspaceAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -147,5 +148,42 @@ public class BuildDataTest {
         Assert.assertTrue(bd.getPromotedUserId("unknown").equals("unknown"));
         Assert.assertTrue(bd.getPromotedJobFullName("unknown").equals("unknown"));
         Assert.assertTrue(bd.getUserId().equals("anonymous"));
+    }
+
+    @Test
+    public void testWithWorkflowRunWithWorkspaceAction() throws IOException, InterruptedException {
+        WorkflowJob job = mock(WorkflowJob.class);
+        WorkflowRun run = WorkflowRunStub.createRun(job, null, null, null, 0L, 0, null, 0L, null);
+
+        FlowExecution exec = mock(FlowExecution.class);
+        when(run.getExecution()).thenReturn(exec);
+        List<FlowNode> flowNodes = new ArrayList<>();
+        flowNodes.add(createFlowNodeWithWorkspaceAction("node1"));
+        flowNodes.add(createFlowNodeWithWorkspaceAction("node2"));
+        flowNodes.add(createFlowNodeWithWorkspaceAction(""));
+        when(exec.getCurrentHeads()).thenReturn(flowNodes);
+
+        TaskListener listener = mock(TaskListener.class);
+        BuildData bd = new BuildData(run, listener) {
+                @Override
+                protected boolean isWorkflowAvailable() {
+                    return true;
+                }
+            };
+
+        Assert.assertTrue(bd.getTags().size() == 2);
+        Assert.assertTrue(bd.getTags().get("job").contains("unknown"));
+        Assert.assertTrue(bd.getTags().get("node").size() == 3);
+        Assert.assertTrue(bd.getTags().get("node").contains("node1"));
+        Assert.assertTrue(bd.getTags().get("node").contains("node2"));
+        Assert.assertTrue(bd.getTags().get("node").contains("master"));
+    }
+
+    private FlowNode createFlowNodeWithWorkspaceAction(String nodeName) {
+        FlowNode flowNode = mock(FlowNode.class);
+        WorkspaceAction action = mock(WorkspaceAction.class);
+        when(flowNode.getAction(WorkspaceAction.class)).thenReturn(action);
+        when(action.getNode()).thenReturn(nodeName);
+        return flowNode;
     }
 }
