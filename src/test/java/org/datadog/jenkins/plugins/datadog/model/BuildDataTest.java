@@ -63,7 +63,7 @@ public class BuildDataTest {
         String hostname = DatadogUtilities.getHostname(null);
         Assert.assertTrue(bd.getHostname("unknown").equals(hostname));
         Assert.assertTrue(bd.getBuildUrl("unknown").equals("unknown"));
-        Assert.assertTrue(bd.getNodeName("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getNodeNames().size() == 0);
         Assert.assertTrue(bd.getBranch("unknown").equals("unknown"));
         Assert.assertTrue(bd.getBuildNumber("unknown").equals("0"));
         Assert.assertTrue(bd.getDuration(-1L).equals(0L));

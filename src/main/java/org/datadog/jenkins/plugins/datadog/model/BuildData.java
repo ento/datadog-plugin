@@ -42,7 +42,7 @@ public class BuildData {
     private String buildNumber;
     private String buildId;
     private String buildUrl;
-    private String nodeName;
+    private List<String> nodeNames = new ArrayList<>();
     private String jobName;
     private String buildTag;
     private String jenkinsUrl;
@@ -128,7 +128,7 @@ public class BuildData {
         }
         setBuildId(envVars.get("BUILD_ID"));
         setBuildUrl(envVars.get("BUILD_URL"));
-        setNodeName(envVars.get("NODE_NAME"));
+        addNodeName(envVars.get("NODE_NAME"));
         setBuildTag(envVars.get("BUILD_TAG"));
         setJenkinsUrl(envVars.get("JENKINS_URL"));
         setExecutorNumber(envVars.get("EXECUTOR_NUMBER"));
@@ -173,9 +173,9 @@ public class BuildData {
         Set<String> jobValues = new HashSet<>();
         jobValues.add(getJobName("unknown"));
         additionalTags.put("job", jobValues);
-        if (nodeName != null) {
+        if (!getNodeNames().isEmpty()) {
             Set<String> nodeValues = new HashSet<>();
-            nodeValues.add(getNodeName("unknown"));
+            nodeValues.addAll(getNodeNames());
             additionalTags.put("node", nodeValues);
         }
         if (result != null) {
@@ -237,12 +237,14 @@ public class BuildData {
         this.buildUrl = buildUrl;
     }
 
-    public String getNodeName(String value) {
-        return defaultIfNull(nodeName, value);
+    public List<String> getNodeNames() {
+        return this.nodeNames;
     }
 
-    public void setNodeName(String nodeName) {
-        this.nodeName = nodeName;
+    public void addNodeName(String nodeName) {
+        if (nodeName != null) {
+            this.nodeNames.add(nodeName);
+        }
     }
 
     public String getBranch(String value) {
