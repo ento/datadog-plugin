@@ -34,6 +34,7 @@ import org.datadog.jenkins.plugins.datadog.util.SuppressFBWarnings;
 import org.datadog.jenkins.plugins.datadog.util.TagsUtil;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.*;
 
 public class BuildData {
@@ -93,7 +94,7 @@ public class BuildData {
         setStartTime(startTimeInMs);
         long durationInMs = run.getDuration();
         if (durationInMs == 0 && startTimeInMs != 0) {
-            durationInMs = System.currentTimeMillis() - startTimeInMs;
+            durationInMs = Clock.systemUTC().millis() - startTimeInMs;
         }
         setDuration(durationInMs);
         if (durationInMs != 0 && startTimeInMs != 0) {
