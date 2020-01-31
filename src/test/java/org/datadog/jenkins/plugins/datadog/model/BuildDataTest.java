@@ -31,11 +31,18 @@ import org.datadog.jenkins.plugins.datadog.DatadogUtilities;
 import org.datadog.jenkins.plugins.datadog.model.BuildData;
 import org.datadog.jenkins.plugins.datadog.stubs.BuildStub;
 import org.datadog.jenkins.plugins.datadog.stubs.ProjectStub;
+import org.datadog.jenkins.plugins.datadog.stubs.WorkflowRunStub;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.jenkinsci.plugins.workflow.flow.FlowExecution;
+import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+
 import java.io.IOException;
 import java.time.Clock;
+import java.util.*;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -55,6 +62,60 @@ public class BuildDataTest {
 
         TaskListener listener = mock(TaskListener.class);
         BuildData bd = new BuildData(run, listener);
+
+        Assert.assertTrue(bd.getTags().size() == 1);
+        Assert.assertTrue(bd.getTags().get("job").contains("unknown"));
+        Assert.assertTrue(bd.getJobName("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getResult("unknown").equals("unknown"));
+        String hostname = DatadogUtilities.getHostname(null);
+        Assert.assertTrue(bd.getHostname("unknown").equals(hostname));
+        Assert.assertTrue(bd.getBuildUrl("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getNodeNames().size() == 0);
+        Assert.assertTrue(bd.getBranch("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getBuildNumber("unknown").equals("0"));
+        Assert.assertTrue(bd.getDuration(-1L).equals(0L));
+        Assert.assertTrue(bd.getEndTime(-1L).equals(-1L));
+        Assert.assertTrue(bd.getStartTime(-1L).equals(0L));
+        Assert.assertTrue(bd.getBuildId("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getBuildTag("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getJenkinsUrl("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getExecutorNumber("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getJavaHome("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getWorkspace("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getGitUrl("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getGitCommit("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getPromotedUrl("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getPromotedJobName("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getPromotedNumber("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getPromotedId("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getPromotedTimestamp("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getPromotedUserName("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getPromotedUserId("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getPromotedJobFullName("unknown").equals("unknown"));
+        Assert.assertTrue(bd.getUserId().equals("anonymous"));
+    }
+
+    @Test
+    public void testWithWorkflowRunWithNothingSet() throws IOException, InterruptedException {
+        Clock clock = mock(Clock.class);
+        when(clock.millis()).thenReturn(0L);
+
+        WorkflowJob job = mock(WorkflowJob.class);
+        WorkflowRun run = WorkflowRunStub.createRun(job, null, null, null, 0L, 0, null, 0L, null);
+
+        TaskListener listener = mock(TaskListener.class);
+        BuildData bd = new BuildData(run, listener) {
+                @Override
+                protected boolean isWorkflowAvailable() {
+                    return true;
+                }
+            };
+        FlowExecution exec = mock(FlowExecution.class);
+        when(run.getExecution()).thenReturn(exec);
+        List<FlowNode> flowNodes = new ArrayList<>();
+        FlowNode flowNode = mock(FlowNode.class);
+        flowNodes.add(flowNode);
+        when(exec.getCurrentHeads()).thenReturn(flowNodes);
 
         Assert.assertTrue(bd.getTags().size() == 1);
         Assert.assertTrue(bd.getTags().get("job").contains("unknown"));
